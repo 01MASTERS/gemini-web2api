@@ -60,6 +60,10 @@ def load_cookie() -> tuple:
             data = json.loads(content)
             cookie_str = data.get("cookie", "")
             sapisid = data.get("sapisid", "")
+            if "xsrf_token" in data:
+                CONFIG["xsrf_token"] = data["xsrf_token"]
+            if "gemini_bl" in data:
+                CONFIG["gemini_bl"] = data["gemini_bl"]
         else:
             cookie_str = content
             pairs = dict(p.split("=", 1) for p in cookie_str.split("; ") if "=" in p)
@@ -194,9 +198,12 @@ def extract_response_text(raw: str) -> str:
 
 def generate(prompt: str, model_id: int, think_mode: int, file_refs: list = None, extra_fields: dict = None) -> str:
     """Non-streaming generation with retry."""
+    load_cookie()
     body = _build_payload(prompt, model_id, think_mode, file_refs, extra_fields).encode()
     url = _get_url()
     headers = _build_headers()
+    log(f"DEBUG URL: {url}")
+    log(f"DEBUG XSRF: {CONFIG.get('xsrf_token')}")
     ctx = _get_ssl_ctx()
     proxy = CONFIG.get("proxy")
 
@@ -224,6 +231,7 @@ def generate(prompt: str, model_id: int, think_mode: int, file_refs: list = None
 
 def generate_stream(prompt: str, model_id: int, think_mode: int, file_refs: list = None, extra_fields: dict = None):
     """Streaming generation via httpx with retry on connection failure."""
+    load_cookie()
     if not HAS_HTTPX:
         text = generate(prompt, model_id, think_mode, file_refs, extra_fields)
         if text:
@@ -233,6 +241,8 @@ def generate_stream(prompt: str, model_id: int, think_mode: int, file_refs: list
     body = _build_payload(prompt, model_id, think_mode, file_refs, extra_fields)
     url = _get_url()
     headers = _build_headers()
+    log(f"DEBUG URL: {url}")
+    log(f"DEBUG XSRF: {CONFIG.get('xsrf_token')}")
     client = _get_httpx_client()
 
     last_err = None

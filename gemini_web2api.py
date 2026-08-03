@@ -121,6 +121,10 @@ def load_cookie() -> tuple:
             data = json.loads(content)
             cookie_str = data.get("cookie", "")
             sapisid = data.get("sapisid", "")
+            if "xsrf_token" in data:
+                CONFIG["xsrf_token"] = data["xsrf_token"]
+            if "gemini_bl" in data:
+                CONFIG["gemini_bl"] = data["gemini_bl"]
         else:
             cookie_str = content
             pairs = dict(p.split("=", 1) for p in cookie_str.split("; ") if "=" in p)
@@ -159,6 +163,7 @@ def apply_chat_persistence_flags(inner: list) -> None:
 
 def gemini_stream_generate(prompt: str, model_id: int, think_mode: int) -> str:
     """Send prompt to Gemini StreamGenerate with retry."""
+    load_cookie()
     inner = [None] * 80
     inner[0] = [prompt, 0, None, None, None, None, 0]
     inner[1] = ["en"]
@@ -231,6 +236,7 @@ def gemini_stream_generate(prompt: str, model_id: int, think_mode: int) -> str:
 
 def gemini_stream_generate_iter(prompt: str, model_id: int, think_mode: int):
     """Send prompt and yield incremental text deltas using httpx streaming."""
+    load_cookie()
     inner = [None] * 80
     inner[0] = [prompt, 0, None, None, None, None, 0]
     inner[1] = ["en"]
